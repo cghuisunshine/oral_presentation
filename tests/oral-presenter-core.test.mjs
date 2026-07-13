@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
 async function loadCore() {
-  const html = await readFile(new URL('../oral-presenter.html', import.meta.url), 'utf8');
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const match = html.match(/<script id="app-script">([\s\S]*?)<\/script>/);
   assert.ok(match, 'embedded app script exists');
   const context = { console, setTimeout, clearTimeout, Blob };
@@ -462,7 +462,7 @@ test('script reference controller updates both nodes without touching recording 
 });
 
 test('recording views expose accessible current-script disclosures', async () => {
-  const html = await readFile(new URL('../oral-presenter.html', import.meta.url), 'utf8');
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   for (const id of [
     'finish-script-details', 'finish-script-summary', 'finish-script-reference',
     'retained-script-details', 'retained-script-summary', 'retained-script-reference',
@@ -471,4 +471,19 @@ test('recording views expose accessible current-script disclosures', async () =>
   }
   assert.match(html, /id="finish-script-reference"[^>]*tabindex="0"[^>]*role="region"[^>]*aria-labelledby="finish-script-summary"/);
   assert.match(html, /id="retained-script-reference"[^>]*tabindex="0"[^>]*role="region"[^>]*aria-labelledby="retained-script-summary"/);
+});
+
+test('mobile portrait presentation defines a contained accessible control layout', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /@media\s*\(max-width:\s*520px\)\s*and\s*\(orientation:\s*portrait\)/);
+  assert.match(html, /\.present-view\s*\{[^}]*height:\s*100dvh[^}]*overflow:\s*hidden/s);
+  assert.match(html, /\.cue-display\s*\{[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/s);
+  assert.match(html, /\.present-controls\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(2,/s);
+  for (const edge of ['top', 'right', 'bottom', 'left']) {
+    assert.match(html, new RegExp(`env\\(safe-area-inset-${edge}\\)`));
+  }
+  assert.match(html, /id="cue-display"[^>]*tabindex="0"[^>]*role="region"[^>]*aria-label="Current cue words"/);
+  assert.match(html, /event\.target\s*===\s*elements\.cueDisplay/);
+  assert.match(html, /PageUp|Page Up/);
+  assert.match(html, /PageDown|Page Down/);
 });
